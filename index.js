@@ -1,105 +1,94 @@
+
+
+
 const express = require('express')
-const Sequelize = require('sequelize')
+const axios = require('axios')
+const path = require('path')
 const app = express()
+var bodyParser = require('body-parser')
 
 
-app.use(express.json())
 
-//const dbUrl = "postgres://webadmin:YLTkax31635@node56376-noderest-test1.proen.app.ruk-com.cloud/Books"
-//const dbUrl = "postgres://webadmin:YLTkax31635@node56376-noderest-test1.proen.app.ruk-com.cloud:11873/Books"
-//const dbUrl = "http://localhost:3000"
+//const base_url = "http://localhost:3000"
+const base_url = "http://node56384-noderest-test1.proen.app.ruk-com.cloud"
+http://node56384-noderest-test1.proen.app.ruk-com.cloud/
+//const base_url = "http://10.104.7.149"
 
-//const sequelize = new Sequelize(dbUrl);
-const sequelize = new Sequelize('database', 'username', 'password', {
-    host : 'localhost',
-    dialect : 'sqlite',
-    storage : './Database/SQBooks.sqlite'
-});
 
-const Book = sequelize.define("book",{
-    id :{
-        type: Sequelize.INTEGER,
-        autoIncrement:true,
-        primaryKey: true
-    },
-    title :{
-        type: Sequelize.STRING,
-        allowNull: false // have to
-    },
-    author :{
-        type: Sequelize.STRING,
-        allowNull: false // have to        
-    },  
+
+app.set('views', path.join(__dirname, "/public/views"))
+app.set('view engine', 'ejs')
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended:false}))
+
+
+app.use(express.static(__dirname + '/public'))
+
+app.get('/', async(req,res)=>{
+   try{
+    const respones = await axios.get(base_url + '/books')
+    res.render("books",{books:respones.data})
+   }catch(err){
+    console.error(err)
+    res.status(500).send('Error')
+   }
 })
 
-sequelize.sync()
-
-app.get('/books',(req,res)=>{
-    Book.findAll().then(books =>{
-        res.json(books)
-    }).catch(err=>{
-        res.status(500).send(err)
-    })
+app.get('/book/:id',async(req,res)=>{
+    try{
+        const respones = await axios.get(base_url + '/books/' + req.params.id)
+        res.render("book",{book:respones.data})
+       }catch(err){
+        console.error(err)
+        res.status(500).send('Error')
+       }
 })
 
-
-app.get('/books/:id',(req,res)=>{
-    Book.findByPk(req.params.id).then(book =>{
-        if(!book) {
-            res.status(404).send('Book not found')
-        }else{
-            res.json(book)
-        }
-    }).catch(err=>{
-        res.status(500).send(err)
-    })
+app.get('/create',(req,res)=>{ // show create desktop
+    res.render("create")
 })
 
-
-
-app.post('/books',(req,res)=>{
-    Book.create(req.body).then(book =>{
-        res.send(book)
-       
-    }).catch(err=>{
-        res.status(500).send(err)
-    })
+app.post('/create',async(req,res)=>{
+   try{
+    const data = { title: req.body.title , author: req.body.author}
+    await axios.post(base_url + '/books' ,data)
+    res.redirect('/')
+   }catch(err){
+    console.error(err)
+    res.status(500).send('Error')
+   }
 })
 
-
-app.put('/books/:id',(req,res)=>{
-    Book.findByPk(req.params.id).then(book =>{
-        if(!book){
-            res.status.send('Bookn not found')
-        }else{
-            book.update(req.body).then(()=>{
-                res.send(book)
-            }).catch(err=>{
-                res.status(500).send(err)
-            })
-        }
-    }).catch(err=>{
-        res.status(500).send(err)
-    })
+app.get('/update/:id',async(req,res)=>{
+    try{
+        const respones = await axios.get(
+            base_url + '/books/' + req.params.id) 
+            res.render('update',{book: respones.data})
+  } catch(err){
+      console.error(err)
+      res.status(500).send('Error')
+    }
 })
 
-
-app.delete('/books/:id',(req,res)=>{
-    Book.findByPk(req.params.id).then(book =>{
-        if(!book){
-            res.status.send('Bookn not found')
-        }else{
-            book.destroy().then(()=>{
-                res.send({})
-            }).catch(err=>{
-                res.status(500).send(err)
-            })
-        }
-    }).catch(err=>{
-        res.status(500).send(err)
-    })
+app.post('/update/:id',async(req,res)=>{
+   try{
+    const data = { title: req.body.title , author: req.body.author}
+    await axios.put(base_url + '/books/' + req.params.id,data)
+    res.redirect('/')
+   }catch(err){
+    console.error(err)
+    res.status(500).send('Error')
+   }
 })
 
+app.get('/delete/:id',async(req,res)=>{
+   try{
+    await axios.delete(base_url + '/books/' + req.params.id)
+    res.redirect('/')
+   }catch(err){
+    console.error(err)
+    res.status(500).send('Error')
+   }
+})
 
-const port = process.env.PORT || 3000
-app.listen(port,()=> console.log(`Listening on port ${port}`))
+app.listen(5500,()=> console.log(`Listening on port 5500`))
